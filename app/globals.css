@@ -439,6 +439,15 @@ input {
   min-width: 230px;
 }
 
+.linkButton {
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
+  font-weight: 800;
+  padding: 0;
+}
+
 .userBox div {
   display: grid;
   gap: 3px;
@@ -547,7 +556,7 @@ input {
 }
 
 .adminRow.serial {
-  grid-template-columns: minmax(220px, 1fr) minmax(120px, 0.7fr) minmax(160px, 0.8fr) auto;
+  grid-template-columns: minmax(220px, 1fr) minmax(120px, 0.7fr) minmax(160px, 0.8fr) auto auto;
 }
 
 .adminRow div,
@@ -589,6 +598,64 @@ input {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
+}
+
+.adminForm {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.adminForm label {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.adminForm input,
+.adminForm select,
+.adminForm textarea {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #ffffff;
+}
+
+.adminForm textarea {
+  min-height: 80px;
+  padding: 10px;
+  resize: vertical;
+}
+
+.adminForm .wide {
+  grid-column: span 2;
+}
+
+.adminForm .full {
+  grid-column: 1 / -1;
+}
+
+.inlineForm {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.inlineForm select,
+.inlineForm button {
+  min-height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.inlineForm button {
+  padding: 0 10px;
+  cursor: pointer;
 }
 
 .serialForm input,
@@ -707,8 +774,108 @@ input {
   font-weight: 700;
 }
 
+.loginForm {
+  display: grid;
+  gap: 14px;
+}
+
 .loginButton {
   text-decoration: none;
+}
+
+.printPage {
+  min-height: 100vh;
+  background: #e5e7eb;
+  padding: 24px;
+}
+
+.printToolbar {
+  width: min(960px, 100%);
+  margin: 0 auto 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.printSheet {
+  width: min(960px, 100%);
+  margin: 0 auto;
+  min-height: 1120px;
+  background: #ffffff;
+  padding: 42px;
+  color: #111827;
+  box-shadow: var(--shadow);
+}
+
+.printHeader,
+.printCustomer,
+.printTotals,
+.printFooter {
+  display: grid;
+  gap: 8px;
+}
+
+.printHeader {
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  border-bottom: 2px solid #111827;
+  padding-bottom: 18px;
+}
+
+.printHeader h1,
+.printHeader h2 {
+  margin: 0;
+}
+
+.printHeader > div:last-child {
+  text-align: right;
+}
+
+.printCustomer {
+  margin: 22px 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.printTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.printTable th,
+.printTable td {
+  border: 1px solid #d1d5db;
+  padding: 10px;
+  text-align: left;
+}
+
+.printTable th {
+  background: #f3f4f6;
+}
+
+.printTotals {
+  width: min(360px, 100%);
+  margin: 20px 0 0 auto;
+}
+
+.printTotals span,
+.printTotals strong {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.printFooter {
+  margin-top: 80px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 48px;
+}
+
+.printFooter span {
+  border-top: 1px solid #111827;
+  padding-top: 10px;
+  text-align: center;
 }
 
 .low {
@@ -802,8 +969,14 @@ input {
   .adminStatGrid,
   .customerAdminGrid,
   .serialForm,
+  .adminForm,
   .paymentGrid {
     grid-template-columns: 1fr;
+  }
+
+  .adminForm .wide,
+  .adminForm .full {
+    grid-column: auto;
   }
 
   .adminTopbar {
@@ -823,5 +996,39 @@ input {
   .adminRow.serial {
     grid-template-columns: 1fr;
     align-items: start;
+  }
+
+  .printPage {
+    padding: 10px;
+  }
+
+  .printSheet {
+    padding: 22px;
+  }
+
+  .printHeader,
+  .printFooter {
+    grid-template-columns: 1fr;
+  }
+
+  .printHeader > div:last-child {
+    text-align: left;
+  }
+}
+
+@media print {
+  .printToolbar {
+    display: none;
+  }
+
+  .printPage {
+    padding: 0;
+    background: #ffffff;
+  }
+
+  .printSheet {
+    width: 100%;
+    min-height: auto;
+    box-shadow: none;
   }
 }

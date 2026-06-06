@@ -12,6 +12,8 @@ import {
   Users
 } from "lucide-react";
 import { adminUser } from "@/lib/admin-data";
+import { logoutAction } from "@/lib/actions";
+import { currentUser } from "@/lib/security";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -23,7 +25,7 @@ const navItems = [
   { href: "/admin/settings", label: "Settings", icon: Settings }
 ];
 
-export function AdminShell({
+export async function AdminShell({
   title,
   subtitle,
   children
@@ -32,6 +34,11 @@ export function AdminShell({
   subtitle: string;
   children: React.ReactNode;
 }) {
+  const user = await currentUser();
+  const displayUser = user
+    ? { name: user.name, email: user.email, role: user.role }
+    : adminUser;
+
   return (
     <main className="adminShell">
       <aside className="adminSidebar">
@@ -64,9 +71,12 @@ export function AdminShell({
           <div className="userBox">
             <LockKeyhole size={18} />
             <div>
-              <strong>{adminUser.name}</strong>
-              <span>{adminUser.role}</span>
+              <strong>{displayUser.name}</strong>
+              <span>{displayUser.role}</span>
             </div>
+            <form action={logoutAction}>
+              <button className="linkButton" type="submit">Logout</button>
+            </form>
           </div>
         </header>
         {children}

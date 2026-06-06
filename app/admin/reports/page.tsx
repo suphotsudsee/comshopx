@@ -1,6 +1,7 @@
 import { Download } from "lucide-react";
 import { AdminShell, Stat, StatusBadge, ToolButton } from "../components";
-import { productCatalog, reportCards, serialInventory } from "@/lib/admin-data";
+import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/security";
 
 const money = new Intl.NumberFormat("th-TH", {
   style: "currency",
@@ -8,13 +9,28 @@ const money = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0
 });
 
-export default function ReportsPage() {
+export default async function ReportsPage() {
+  await requireUser(["ADMIN", "OWNER", "ACCOUNTING", "INVENTORY"]);
+  const [products, serialInventory, paidDocuments, pendingDocuments] = await Promise.all([
+    prisma.product.findMany({ include: { category: true }, orderBy: { name: "asc" } }),
+    prisma.serialNumber.findMany({ include: { product: true }, orderBy: { updatedAt: "desc" } }),
+    prisma.document.findMany({ where: { status: "PAID" } }),
+    prisma.document.findMany({ where: { status: { in: ["DRAFT", "ISSUED"] } } })
+  ]);
+  const revenue = paidDocuments.reduce((sum, document) => sum + Number(document.totalAmount), 0);
+  const pending = pendingDocuments.reduce((sum, document) => sum + Number(document.totalAmount), 0);
+  const grossProfit = products.reduce(
+    (sum, product) => sum + (Number(product.price) - Number(product.costPrice)) * product.stockQuantity,
+    0
+  );
+
   return (
     <AdminShell title="Reports" subtitle="ยอดขาย สินค้าคงคลัง Serial Number และเอกสารสำหรับบัญชี">
       <section className="adminStatGrid">
-        {reportCards.map((card) => (
-          <Stat key={card.label} label={card.label} value={money.format(card.value)} helper={card.helper} />
-        ))}
+        <Stat label="ยอดขายชำระแล้ว" value={money.format(revenue)} helper={`${paidDocuments.length} เอกสาร`} />
+        <Stat label="เอกสารค้างชำระ" value={money.format(pending)} helper={`${pendingDocuments.length} เอกสาร`} />
+        <Stat label="กำไรขั้นต้นคงคลัง" value={money.format(grossProfit)} helper="จากราคาขาย - ราคาทุน" />
+        <Stat label="Serial ทั้งหมด" value={`${serialInventory.length} รายการ`} helper="ทุกสถานะ" />
       </section>
 
       <section className="adminGrid two">
@@ -27,7 +43,7 @@ export default function ReportsPage() {
             <ToolButton label="Export CSV" icon={<Download size={16} />} />
           </div>
           <div className="adminTable">
-            {productCatalog.map((product) => (
+            {products.map((product) => (
               <div className="adminRow" key={product.sku}>
                 <div>
                   <strong>{product.name}</strong>
@@ -53,7 +69,7 @@ export default function ReportsPage() {
               <div className="adminRow" key={serial.serialNumber}>
                 <div>
                   <strong>{serial.serialNumber}</strong>
-                  <span>{serial.productName}</span>
+                  <span>{serial.product.name}</span>
                 </div>
                 <StatusBadge value={serial.status} />
               </div>

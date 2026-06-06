@@ -25,6 +25,19 @@ Open `http://localhost:3000`.
 docker compose up -d --build
 ```
 
+The production container runs:
+
+```bash
+prisma migrate deploy && npm run db:seed && node server.js
+```
+
+Default seeded admin:
+
+- Email: `suphotsudsee@gmail.com`
+- Password: `admin1234`
+
+Set `ADMIN_PASSWORD` in Coolify to override the seeded password before first deploy.
+
 ## Database
 After MySQL is running:
 
@@ -33,3 +46,14 @@ npx prisma migrate dev
 ```
 
 The initial schema is in `prisma/schema.prisma`.
+
+## Admin
+
+- `/admin/login` - sign in
+- `/admin` - dashboard
+- `/admin/pos` - POS sale transaction with stock and Serial Number updates
+- `/admin/documents` - quotations, delivery notes, receipts, tax invoices
+- `/admin/inventory` - products, receiving, Serial Number status
+- `/admin/customers` - CRM
+- `/admin/reports` - inventory and document reports
+- `/admin/settings` - users and RBAC

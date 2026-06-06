@@ -1,6 +1,9 @@
 import { Barcode, CreditCard, ReceiptText } from "lucide-react";
 import { AdminShell, ScanInput, StatusBadge, ToolButton } from "../components";
-import { paymentMethods, productCatalog, serialInventory } from "@/lib/admin-data";
+import { createPosSaleAction } from "@/lib/actions";
+import { paymentMethods } from "@/lib/admin-data";
+import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/security";
 
 const money = new Intl.NumberFormat("th-TH", {
   style: "currency",
@@ -8,12 +11,20 @@ const money = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0
 });
 
-export default function PosPage() {
-  const cart = productCatalog.slice(0, 3);
-  const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
-  const discount = 1200;
-  const vat = Math.round((subtotal - discount) * 0.07);
-  const total = subtotal - discount + vat;
+export default async function PosPage() {
+  await requireUser(["ADMIN", "OWNER", "CASHIER"]);
+  const [products, customers, recentReceipts] = await Promise.all([
+    prisma.product.findMany({
+      include: { category: true, serialNumbers: { where: { status: "IN_STOCK" }, orderBy: { serialNumber: "asc" } } },
+      orderBy: { name: "asc" }
+    }),
+    prisma.customer.findMany({ orderBy: { name: "asc" } }),
+    prisma.document.findMany({ where: { type: "RECEIPT" }, orderBy: { createdAt: "desc" }, take: 3 })
+  ]);
+  const preview = products.slice(0, 3);
+  const subtotal = preview.reduce((sum, item) => sum + Number(item.price), 0);
+  const vat = Math.round(subtotal * 0.07);
+  const total = subtotal + vat;
 
   return (
     <AdminShell title="Point of Sale" subtitle="ขายหน้าร้าน สแกน Barcode/QR และเลือก Serial Number ตอนขาย">
@@ -28,13 +39,13 @@ export default function PosPage() {
           </div>
           <ScanInput placeholder="ยิง Barcode, QR Code, SKU หรือ Serial Number" />
           <div className="adminTable compact">
-            {productCatalog.map((product) => (
+            {products.map((product) => (
               <div className="adminRow" key={product.sku}>
                 <div>
                   <strong>{product.name}</strong>
-                  <span>{product.sku} · {product.category}</span>
+                  <span>{product.sku} · {product.category.name}</span>
                 </div>
-                <b>{money.format(product.price)}</b>
+                <b>{money.format(Number(product.price))}</b>
               </div>
             ))}
           </div>
@@ -48,24 +59,50 @@ export default function PosPage() {
             </div>
             <StatusBadge value="VAT 7%" />
           </div>
-          <div className="adminTable">
-            {cart.map((product) => (
-              <div className="adminRow" key={product.sku}>
-                <div>
-                  <strong>{product.name}</strong>
+          <form action={createPosSaleAction} className="adminForm">
+            <label className="wide">ลูกค้า
+              <select name="customerId">
+                <option value="">Walk-in customer</option>
+                {customers.map((customer) => <option value={customer.id} key={customer.id}>{customer.name}</option>)}
+              </select>
+            </label>
+            <label>ชำระเงิน
+              <select name="paymentMethod" defaultValue="CASH">
+                <option value="CASH">Cash</option>
+                <option value="TRANSFER">Transfer</option>
+                <option value="CREDIT_CARD">Credit Card</option>
+                <option value="MIXED">Mixed</option>
+              </select>
+            </label>
+            <div className="full adminTable">
+              {products.map((product) => (
+                <label className="adminRow" key={product.id}>
                   <span>
-                    {product.requireSerial
-                      ? serialInventory.find((serial) => serial.sku === product.sku)?.serialNumber
-                      : "No serial required"}
+                    <input name="productId" type="checkbox" value={product.id} />
+                    {" "}
+                    <strong>{product.name}</strong>
+                    <small>{product.sku} · {money.format(Number(product.price))}</small>
                   </span>
-                </div>
-                <b>{money.format(product.price)}</b>
-              </div>
-            ))}
-          </div>
+                  {product.requireSerial ? (
+                    <select name={`serial_${product.id}`} defaultValue="">
+                      <option value="">เลือก Serial Number</option>
+                      {product.serialNumbers.map((serial) => (
+                        <option value={serial.id} key={serial.id}>{serial.serialNumber}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input name={`serial_${product.id}`} type="hidden" value="" />
+                  )}
+                </label>
+              ))}
+            </div>
+            <button className="primaryButton full" type="submit">
+              <CreditCard size={18} />
+              รับชำระเงินและออกใบเสร็จ
+            </button>
+          </form>
           <div className="checkoutBox">
             <span>Subtotal <b>{money.format(subtotal)}</b></span>
-            <span>Discount <b>{money.format(discount)}</b></span>
             <span>VAT 7% <b>{money.format(vat)}</b></span>
             <strong>Total {money.format(total)}</strong>
           </div>
@@ -74,10 +111,6 @@ export default function PosPage() {
               <button type="button" key={method}>{method}</button>
             ))}
           </div>
-          <button className="wideButton" type="button">
-            <CreditCard size={18} />
-            รับชำระเงินและออกใบเสร็จ
-          </button>
         </div>
 
         <div className="adminPanel">
@@ -89,9 +122,8 @@ export default function PosPage() {
             <ReceiptText size={20} />
           </div>
           <div className="documentFlow">
-            <span>QUO-202606-0001</span>
-            <span>DN-202606-0001</span>
-            <span>REC-202606-0001 / TAX-202606-0001</span>
+            {recentReceipts.map((receipt) => <span key={receipt.id}>{receipt.documentNo}</span>)}
+            {!recentReceipts.length ? <span>ยังไม่มีใบเสร็จ</span> : null}
           </div>
         </div>
       </section>

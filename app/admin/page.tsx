@@ -1,11 +1,6 @@
 import { AdminShell, Stat, StatusBadge } from "./components";
-import {
-  auditLogs,
-  businessDocuments,
-  productCatalog,
-  reportCards,
-  serialInventory
-} from "@/lib/admin-data";
+import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/security";
 
 const money = new Intl.NumberFormat("th-TH", {
   style: "currency",
@@ -13,9 +8,25 @@ const money = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0
 });
 
-export default function AdminDashboard() {
-  const lowStock = productCatalog.filter((product) => product.stockQuantity <= product.reorderPoint);
-  const serialIssues = serialInventory.filter((serial) => serial.status === "CLAIMED" || serial.status === "RESERVED");
+export default async function AdminDashboard() {
+  await requireUser();
+  const [products, serialIssues, documents, auditLogs] = await Promise.all([
+    prisma.product.findMany({ include: { category: true }, orderBy: { updatedAt: "desc" } }),
+    prisma.serialNumber.findMany({
+      where: { status: { in: ["CLAIMED", "RESERVED"] } },
+      include: { product: true },
+      orderBy: { updatedAt: "desc" },
+      take: 8
+    }),
+    prisma.document.findMany({ include: { customer: true }, orderBy: { createdAt: "desc" }, take: 6 }),
+    prisma.auditLog.findMany({ include: { user: true }, orderBy: { createdAt: "desc" }, take: 8 })
+  ]);
+  const lowStock = products.filter((product) => product.stockQuantity <= product.reorderPoint);
+  const paidDocuments = documents.filter((document) => document.status === "PAID");
+  const revenue = paidDocuments.reduce((sum, document) => sum + Number(document.totalAmount), 0);
+  const pending = documents
+    .filter((document) => document.status !== "PAID" && document.status !== "CANCELLED")
+    .reduce((sum, document) => sum + Number(document.totalAmount), 0);
 
   return (
     <AdminShell
@@ -23,14 +34,10 @@ export default function AdminDashboard() {
       subtitle="ภาพรวมยอดขาย สต๊อก เอกสาร และสถานะ Serial Number"
     >
       <section className="adminStatGrid">
-        {reportCards.map((card) => (
-          <Stat
-            key={card.label}
-            label={card.label}
-            value={money.format(card.value)}
-            helper={card.helper}
-          />
-        ))}
+        <Stat label="ยอดขายจากเอกสารชำระแล้ว" value={money.format(revenue)} helper={`${paidDocuments.length} เอกสาร`} />
+        <Stat label="เอกสารค้างชำระ" value={money.format(pending)} helper="ใบเสนอราคา/ใบส่งของ" />
+        <Stat label="สินค้าใกล้หมด" value={`${lowStock.length} SKU`} helper="จาก Product Master" />
+        <Stat label="Serial ติดตาม" value={`${serialIssues.length} รายการ`} helper="Reserved / Claimed" />
       </section>
 
       <section className="adminGrid two">
@@ -68,7 +75,7 @@ export default function AdminDashboard() {
               <div className="adminRow" key={serial.serialNumber}>
                 <div>
                   <strong>{serial.serialNumber}</strong>
-                  <span>{serial.productName}</span>
+                  <span>{serial.product.name}</span>
                 </div>
                 <StatusBadge value={serial.status} />
               </div>
@@ -86,11 +93,11 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div className="adminTable">
-            {businessDocuments.slice(0, 4).map((document) => (
+            {documents.slice(0, 4).map((document) => (
               <div className="adminRow" key={document.documentNo}>
                 <div>
                   <strong>{document.documentNo}</strong>
-                  <span>{document.customerName}</span>
+                  <span>{document.customer?.name ?? "Walk-in customer"}</span>
                 </div>
                 <StatusBadge value={document.status} />
               </div>
@@ -107,7 +114,9 @@ export default function AdminDashboard() {
           </div>
           <div className="auditList">
             {auditLogs.map((log) => (
-              <span key={log}>{log}</span>
+              <span key={log.id}>
+                {log.createdAt.toLocaleString("th-TH")} {log.user?.name ?? "System"} {log.action} {log.entity}
+              </span>
             ))}
           </div>
         </div>
