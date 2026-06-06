@@ -5,6 +5,12 @@ services:
       dockerfile: Dockerfile
     expose:
       - "3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.comshopx.rule=Host(`r9fjyavpfql18slefxw46vx9.110.164.222.217.sslip.io`)"
+      - "traefik.http.routers.comshopx.entrypoints=http,https"
+      - "traefik.http.routers.comshopx.tls=true"
+      - "traefik.http.services.comshopx.loadbalancer.server.port=3000"
     environment:
       DATABASE_URL: mysql://comshopx:comshopx_password@mysql:3306/comshopx
       REDIS_URL: redis://redis:6379
