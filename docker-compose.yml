@@ -3,8 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     environment:
       DATABASE_URL: mysql://comshopx:comshopx_password@mysql:3306/comshopx
       REDIS_URL: redis://redis:6379
@@ -17,8 +17,6 @@ services:
   mysql:
     image: mysql:8.4
     restart: unless-stopped
-    ports:
-      - "3306:3306"
     environment:
       MYSQL_DATABASE: comshopx
       MYSQL_USER: comshopx
@@ -30,8 +28,6 @@ services:
   redis:
     image: redis:7.4-alpine
     restart: unless-stopped
-    ports:
-      - "6379:6379"
 
 volumes:
   mysql_data:
