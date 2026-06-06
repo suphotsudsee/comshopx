@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { mkdir, writeFile } from "fs/promises";
+import path from "path";
 import type { DocumentType, PaymentMethod, SerialStatus } from "@prisma/client";
 import { prisma } from "./prisma";
 import { createSession, destroySession, hashPassword, requireUser, verifyPassword } from "./security";
@@ -407,11 +409,32 @@ export async function createUserAction(formData: FormData) {
 export async function updateCompanySettingsAction(formData: FormData) {
   const user = await requireUser(["ADMIN", "OWNER"]);
   const name = value(formData, "name");
+  let logoUrl = value(formData, "logoUrl") || null;
+  const logoFile = formData.get("logoFile");
+
+  if (logoFile instanceof File && logoFile.size > 0) {
+    if (!logoFile.type.startsWith("image/")) {
+      throw new Error("Logo file must be an image");
+    }
+    if (logoFile.size > 2 * 1024 * 1024) {
+      throw new Error("Logo file must be smaller than 2MB");
+    }
+    const extension = path.extname(logoFile.name).toLowerCase() || ".png";
+    const safeExtension = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"].includes(extension)
+      ? extension
+      : ".png";
+    const uploadDir = path.join(process.cwd(), "public", "uploads", "company");
+    await mkdir(uploadDir, { recursive: true });
+    const fileName = `logo-${Date.now()}${safeExtension}`;
+    await writeFile(path.join(uploadDir, fileName), Buffer.from(await logoFile.arrayBuffer()));
+    logoUrl = `/uploads/company/${fileName}`;
+  }
+
   await prisma.companySetting.upsert({
     where: { id: "default" },
     update: {
       name,
-      logoUrl: value(formData, "logoUrl") || null,
+      logoUrl,
       taxId: value(formData, "taxId") || null,
       address: value(formData, "address") || null,
       phone: value(formData, "phone") || null,
@@ -420,7 +443,7 @@ export async function updateCompanySettingsAction(formData: FormData) {
     create: {
       id: "default",
       name,
-      logoUrl: value(formData, "logoUrl") || null,
+      logoUrl,
       taxId: value(formData, "taxId") || null,
       address: value(formData, "address") || null,
       phone: value(formData, "phone") || null,

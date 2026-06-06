@@ -28,7 +28,8 @@ export default async function SettingsPage() {
         </div>
         <form action={updateCompanySettingsAction} className="adminForm">
           <label className="wide">ชื่อบริษัท<input name="name" defaultValue={company?.name ?? "ComShopX"} required /></label>
-          <label className="wide">Logo URL<input name="logoUrl" defaultValue={company?.logoUrl ?? ""} placeholder="https://example.com/logo.png" /></label>
+          <label className="wide">Logo URL<input name="logoUrl" defaultValue={company?.logoUrl ?? ""} placeholder="https://example.com/logo.png หรือ /uploads/company/logo.png" /></label>
+          <label className="wide">Upload logo<input name="logoFile" type="file" accept="image/*" /></label>
           <label>Tax ID<input name="taxId" defaultValue={company?.taxId ?? ""} /></label>
           <label>Phone<input name="phone" defaultValue={company?.phone ?? ""} /></label>
           <label className="wide">Email<input name="email" defaultValue={company?.email ?? ""} type="email" /></label>

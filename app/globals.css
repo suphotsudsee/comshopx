@@ -625,6 +625,11 @@ input {
   background: #ffffff;
 }
 
+.adminForm input[type="file"] {
+  padding: 8px;
+  min-height: 44px;
+}
+
 .adminForm textarea {
   min-height: 80px;
   padding: 10px;
