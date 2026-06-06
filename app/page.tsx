@@ -8,6 +8,7 @@ import {
   ShoppingCart,
   Users
 } from "lucide-react";
+import Link from "next/link";
 import { customers, documents, lowStockProducts, products, serialNumbers } from "@/lib/mock-data";
 
 const formatter = new Intl.NumberFormat("th-TH", {
@@ -51,6 +52,9 @@ export default function Home() {
             <button className="iconButton" aria-label="Scan barcode">
               <ScanLine size={20} />
             </button>
+            <Link className="secondaryButton" href="/admin">
+              Admin
+            </Link>
             <button className="primaryButton">
               <ReceiptText size={18} />
               ออกใบเสร็จ
