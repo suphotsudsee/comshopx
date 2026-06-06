@@ -7,6 +7,12 @@ import { prisma } from "./prisma";
 const SESSION_COOKIE = "comshopx_session";
 const SESSION_DAYS = 7;
 
+function shouldUseSecureCookie() {
+  if (process.env.COOKIE_SECURE === "true") return true;
+  if (process.env.COOKIE_SECURE === "false") return false;
+  return (process.env.NEXTAUTH_URL ?? "").startsWith("https://");
+}
+
 export function hashPassword(password: string, salt = randomBytes(16).toString("hex")) {
   const hash = createHash("sha256").update(`${salt}:${password}`).digest("hex");
   return `${salt}:${hash}`;
@@ -34,7 +40,7 @@ export async function createSession(userId: string) {
   cookies().set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: shouldUseSecureCookie(),
     path: "/",
     expires: expiresAt
   });

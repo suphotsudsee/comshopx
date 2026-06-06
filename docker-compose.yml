@@ -21,6 +21,7 @@ services:
       NEXTAUTH_SECRET: change-me
       NEXTAUTH_URL: http://localhost:3000
       ADMIN_PASSWORD: admin1234
+      COOKIE_SECURE: "false"
     depends_on:
       mysql:
         condition: service_healthy
