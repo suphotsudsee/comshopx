@@ -23,14 +23,17 @@ export default async function PrintableDocumentPage({
   params: { id: string };
 }) {
   await requireUser(["ADMIN", "OWNER", "CASHIER", "ACCOUNTING"]);
-  const document = await prisma.document.findUnique({
-    where: { id: params.id },
-    include: {
-      customer: true,
-      referenceDocument: true,
-      items: { include: { product: true, serialNumber: true } }
-    }
-  });
+  const [document, company] = await Promise.all([
+    prisma.document.findUnique({
+      where: { id: params.id },
+      include: {
+        customer: true,
+        referenceDocument: true,
+        items: { include: { product: true, serialNumber: true } }
+      }
+    }),
+    prisma.companySetting.findUnique({ where: { id: "default" } })
+  ]);
   if (!document) notFound();
   const serialOptions = await prisma.serialNumber.findMany({
     where: {
@@ -106,9 +109,12 @@ export default async function PrintableDocumentPage({
       <section className="printSheet">
         <header className="printHeader">
           <div>
-            <h1>ComShopX</h1>
+            {company?.logoUrl ? <img className="printLogo" src={company.logoUrl} alt={`${company.name} logo`} /> : null}
+            <h1>{company?.name ?? "ComShopX"}</h1>
             <span>All-in-One Computer Store Management System</span>
-            <span>Tax ID: 0000000000000</span>
+            <span>Tax ID: {company?.taxId ?? "0000000000000"}</span>
+            <span>{company?.address ?? ""}</span>
+            <span>{company?.phone ?? ""} {company?.email ?? ""}</span>
           </div>
           <div>
             <h2>{names[document.type]}</h2>

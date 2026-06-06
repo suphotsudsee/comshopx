@@ -749,6 +749,31 @@ input {
   font-size: 12px;
 }
 
+.companyPreview {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.companyPreview img,
+.printLogo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+}
+
+.companyPreview div {
+  display: grid;
+  gap: 4px;
+}
+
 .loginScreen {
   min-height: 100vh;
   display: grid;

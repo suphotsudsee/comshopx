@@ -1,5 +1,5 @@
 import { AdminShell, StatusBadge } from "../components";
-import { createUserAction } from "@/lib/actions";
+import { createUserAction, updateCompanySettingsAction } from "@/lib/actions";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/security";
 
@@ -12,10 +12,39 @@ const roles = [
 
 export default async function SettingsPage() {
   await requireUser(["ADMIN", "OWNER"]);
-  const users = await prisma.user.findMany({ orderBy: { createdAt: "desc" } });
+  const [users, company] = await Promise.all([
+    prisma.user.findMany({ orderBy: { createdAt: "desc" } }),
+    prisma.companySetting.findUnique({ where: { id: "default" } })
+  ]);
 
   return (
     <AdminShell title="Settings & RBAC" subtitle="ตั้งค่าร้าน เลขที่เอกสาร VAT และสิทธิ์ผู้ใช้งาน">
+      <section className="adminPanel">
+        <div className="panelHeader">
+          <div>
+            <p className="eyebrow">Company Profile</p>
+            <h2>ชื่อบริษัทและโลโก้</h2>
+          </div>
+        </div>
+        <form action={updateCompanySettingsAction} className="adminForm">
+          <label className="wide">ชื่อบริษัท<input name="name" defaultValue={company?.name ?? "ComShopX"} required /></label>
+          <label className="wide">Logo URL<input name="logoUrl" defaultValue={company?.logoUrl ?? ""} placeholder="https://example.com/logo.png" /></label>
+          <label>Tax ID<input name="taxId" defaultValue={company?.taxId ?? ""} /></label>
+          <label>Phone<input name="phone" defaultValue={company?.phone ?? ""} /></label>
+          <label className="wide">Email<input name="email" defaultValue={company?.email ?? ""} type="email" /></label>
+          <label className="full">Address<textarea name="address" defaultValue={company?.address ?? ""} /></label>
+          <button className="primaryButton" type="submit">บันทึกข้อมูลบริษัท</button>
+        </form>
+        {company?.logoUrl ? (
+          <div className="companyPreview">
+            <img src={company.logoUrl} alt={`${company.name} logo`} />
+            <div>
+              <strong>{company.name}</strong>
+              <span>{company.taxId}</span>
+            </div>
+          </div>
+        ) : null}
+      </section>
       <section className="adminGrid two">
         <div className="adminPanel">
           <div className="panelHeader">

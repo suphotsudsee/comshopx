@@ -220,3 +220,15 @@ model AuditLog {
   @@index([userId])
   @@index([entity, entityId])
 }
+
+model CompanySetting {
+  id        String   @id @default("default")
+  name      String
+  logoUrl   String?
+  taxId     String?
+  address   String?  @db.Text
+  phone     String?
+  email     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

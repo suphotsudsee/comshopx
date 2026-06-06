@@ -182,3 +182,17 @@ ALTER TABLE `StockMovement` ADD CONSTRAINT `StockMovement_productId_fkey` FOREIG
 ALTER TABLE `StockMovement` ADD CONSTRAINT `StockMovement_serialNumberId_fkey` FOREIGN KEY (`serialNumberId`) REFERENCES `SerialNumber`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 ALTER TABLE `StockMovement` ADD CONSTRAINT `StockMovement_documentId_fkey` FOREIGN KEY (`documentId`) REFERENCES `Document`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 ALTER TABLE `AuditLog` ADD CONSTRAINT `AuditLog_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- CreateTable
+CREATE TABLE `CompanySetting` (
+    `id` VARCHAR(191) NOT NULL DEFAULT 'default',
+    `name` VARCHAR(191) NOT NULL,
+    `logoUrl` VARCHAR(191) NULL,
+    `taxId` VARCHAR(191) NULL,
+    `address` TEXT NULL,
+    `phone` VARCHAR(191) NULL,
+    `email` VARCHAR(191) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

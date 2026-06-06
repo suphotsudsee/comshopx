@@ -44,6 +44,20 @@ async function main() {
     }
   });
 
+  await prisma.companySetting.upsert({
+    where: { id: "default" },
+    update: {},
+    create: {
+      id: "default",
+      name: "ComShopX",
+      logoUrl: "",
+      taxId: "0000000000000",
+      address: "99/9 Computer Store Road, Thailand",
+      phone: "02-000-0000",
+      email: "admin@comshopx.local"
+    }
+  });
+
   for (const name of categories) {
     await prisma.category.upsert({ where: { name }, update: {}, create: { name } });
   }

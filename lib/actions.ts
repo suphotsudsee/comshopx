@@ -403,3 +403,39 @@ export async function createUserAction(formData: FormData) {
   });
   revalidatePath("/admin/settings");
 }
+
+export async function updateCompanySettingsAction(formData: FormData) {
+  const user = await requireUser(["ADMIN", "OWNER"]);
+  const name = value(formData, "name");
+  await prisma.companySetting.upsert({
+    where: { id: "default" },
+    update: {
+      name,
+      logoUrl: value(formData, "logoUrl") || null,
+      taxId: value(formData, "taxId") || null,
+      address: value(formData, "address") || null,
+      phone: value(formData, "phone") || null,
+      email: value(formData, "email") || null
+    },
+    create: {
+      id: "default",
+      name,
+      logoUrl: value(formData, "logoUrl") || null,
+      taxId: value(formData, "taxId") || null,
+      address: value(formData, "address") || null,
+      phone: value(formData, "phone") || null,
+      email: value(formData, "email") || null
+    }
+  });
+  await prisma.auditLog.create({
+    data: {
+      userId: user.id,
+      action: "UPDATE",
+      entity: "CompanySetting",
+      entityId: "default",
+      detail: name
+    }
+  });
+  revalidatePath("/admin/settings");
+  revalidatePath("/admin/documents");
+}
