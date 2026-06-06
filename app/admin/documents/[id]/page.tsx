@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/security";
 import { PrintButton } from "./print-button";
+import { cancelDocumentAction, convertDocumentAction } from "@/lib/actions";
 
 const money = new Intl.NumberFormat("th-TH", {
   style: "currency",
@@ -31,6 +32,21 @@ export default async function PrintableDocumentPage({
     }
   });
   if (!document) notFound();
+  const serialOptions = await prisma.serialNumber.findMany({
+    where: {
+      status: document.type === "DELIVERY_NOTE" ? { in: ["RESERVED", "IN_STOCK"] } : "IN_STOCK"
+    },
+    include: { product: true },
+    orderBy: { serialNumber: "asc" }
+  });
+  const nextType =
+    document.type === "QUOTATION"
+      ? "DELIVERY_NOTE"
+      : document.type === "DELIVERY_NOTE"
+        ? "RECEIPT"
+        : document.type === "RECEIPT"
+          ? "TAX_INVOICE"
+          : null;
 
   return (
     <main className="printPage">
@@ -38,6 +54,55 @@ export default async function PrintableDocumentPage({
         <Link href="/admin/documents" className="secondaryButton">Back</Link>
         <PrintButton />
       </div>
+      <section className="documentActionPanel">
+        <div>
+          <p className="eyebrow">Document Workflow</p>
+          <h2>{document.documentNo}</h2>
+          <span>Status: {document.status}</span>
+        </div>
+        {nextType && document.status !== "CANCELLED" ? (
+          <form action={convertDocumentAction} className="adminForm">
+            <input type="hidden" name="sourceDocumentId" value={document.id} />
+            <input type="hidden" name="targetType" value={nextType} />
+            <label>Next document
+              <input value={nextType} readOnly />
+            </label>
+            {nextType === "RECEIPT" ? (
+              <label>Payment
+                <select name="paymentMethod" defaultValue="CASH">
+                  <option value="CASH">Cash</option>
+                  <option value="TRANSFER">Transfer</option>
+                  <option value="CREDIT_CARD">Credit Card</option>
+                  <option value="MIXED">Mixed</option>
+                </select>
+              </label>
+            ) : null}
+            {document.items.map((item) =>
+              item.product.requireSerial && nextType !== "TAX_INVOICE" ? (
+                <label className="wide" key={item.id}>{item.product.sku} Serial
+                  <select name={`serial_${item.id}`} defaultValue={item.serialNumberId ?? ""} required>
+                    <option value="">เลือก Serial Number</option>
+                    {serialOptions
+                      .filter((serial) => serial.productId === item.productId)
+                      .map((serial) => (
+                        <option value={serial.id} key={serial.id}>
+                          {serial.serialNumber} ({serial.status})
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              ) : null
+            )}
+            <button className="primaryButton" type="submit">Convert to {nextType}</button>
+          </form>
+        ) : null}
+        {document.status !== "CANCELLED" ? (
+          <form action={cancelDocumentAction}>
+            <input type="hidden" name="documentId" value={document.id} />
+            <button className="secondaryButton" type="submit">Cancel document</button>
+          </form>
+        ) : null}
+      </section>
       <section className="printSheet">
         <header className="printHeader">
           <div>

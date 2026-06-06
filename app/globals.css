@@ -552,7 +552,7 @@ input {
 }
 
 .adminRow.document {
-  grid-template-columns: minmax(180px, 1fr) minmax(160px, 0.8fr) auto auto auto;
+  grid-template-columns: minmax(220px, 1fr) minmax(160px, 0.8fr) auto auto auto auto;
 }
 
 .adminRow.serial {
@@ -797,6 +797,22 @@ input {
   gap: 10px;
 }
 
+.documentActionPanel {
+  width: min(960px, 100%);
+  margin: 0 auto 16px;
+  display: grid;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+
+.documentActionPanel h2 {
+  margin: 0;
+}
+
 .printSheet {
   width: min(960px, 100%);
   margin: 0 auto;
@@ -1018,6 +1034,10 @@ input {
 
 @media print {
   .printToolbar {
+    display: none;
+  }
+
+  .documentActionPanel {
     display: none;
   }
 

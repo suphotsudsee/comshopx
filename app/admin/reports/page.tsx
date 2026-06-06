@@ -1,5 +1,6 @@
 import { Download } from "lucide-react";
-import { AdminShell, Stat, StatusBadge, ToolButton } from "../components";
+import Link from "next/link";
+import { AdminShell, Stat, StatusBadge } from "../components";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/security";
 
@@ -40,7 +41,10 @@ export default async function ReportsPage() {
               <p className="eyebrow">Inventory Report</p>
               <h2>สินค้าคงคลัง</h2>
             </div>
-            <ToolButton label="Export CSV" icon={<Download size={16} />} />
+            <Link className="secondaryButton" href="/admin/reports/inventory.csv">
+              <Download size={16} />
+              Export CSV
+            </Link>
           </div>
           <div className="adminTable">
             {products.map((product) => (
@@ -62,7 +66,10 @@ export default async function ReportsPage() {
               <p className="eyebrow">Serial Report</p>
               <h2>สถานะ Serial Number</h2>
             </div>
-            <ToolButton label="Export PDF" icon={<Download size={16} />} />
+            <Link className="secondaryButton" href="/admin/reports/documents.csv">
+              <Download size={16} />
+              Export CSV
+            </Link>
           </div>
           <div className="adminTable">
             {serialInventory.map((serial) => (

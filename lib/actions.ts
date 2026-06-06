@@ -169,6 +169,145 @@ export async function createDocumentAction(formData: FormData) {
   revalidatePath("/admin/documents");
 }
 
+export async function convertDocumentAction(formData: FormData) {
+  const user = await requireUser(["ADMIN", "OWNER", "CASHIER", "ACCOUNTING"]);
+  const sourceDocumentId = value(formData, "sourceDocumentId");
+  const targetType = value(formData, "targetType") as DocumentType;
+  const paymentMethod = (value(formData, "paymentMethod") || "CASH") as PaymentMethod;
+
+  await prisma.$transaction(async (tx) => {
+    const source = await tx.document.findUniqueOrThrow({
+      where: { id: sourceDocumentId },
+      include: { items: { include: { product: true, serialNumber: true } } }
+    });
+    if (source.status === "CANCELLED" || source.status === "VOID") {
+      throw new Error("Cannot convert cancelled or void document");
+    }
+    const valid =
+      (source.type === "QUOTATION" && targetType === "DELIVERY_NOTE") ||
+      (source.type === "DELIVERY_NOTE" && targetType === "RECEIPT") ||
+      (source.type === "RECEIPT" && targetType === "TAX_INVOICE");
+    if (!valid) throw new Error(`Invalid conversion ${source.type} -> ${targetType}`);
+
+    const documentNo = await nextDocumentNo(tx as never, targetType);
+    const document = await tx.document.create({
+      data: {
+        documentNo,
+        type: targetType,
+        customerId: source.customerId,
+        referenceDocumentId: source.id,
+        subtotalAmount: source.subtotalAmount,
+        discountAmount: source.discountAmount,
+        vatAmount: source.vatAmount,
+        totalAmount: source.totalAmount,
+        status: targetType === "RECEIPT" || targetType === "TAX_INVOICE" ? "PAID" : "ISSUED",
+        paymentMethod: targetType === "RECEIPT" ? paymentMethod : null,
+        issuedAt: new Date(),
+        note: `Converted from ${source.documentNo}`
+      }
+    });
+
+    for (const item of source.items) {
+      let serialNumberId = item.serialNumberId;
+      const requestedSerial = value(formData, `serial_${item.id}`);
+      if (item.product.requireSerial && targetType !== "TAX_INVOICE") {
+        serialNumberId = requestedSerial || serialNumberId;
+        if (!serialNumberId) throw new Error(`Serial Number required for ${item.product.sku}`);
+        const serial = await tx.serialNumber.findUniqueOrThrow({ where: { id: serialNumberId } });
+        if (serial.productId !== item.productId) throw new Error(`Serial does not match ${item.product.sku}`);
+        const allowedStatus = targetType === "DELIVERY_NOTE" ? "IN_STOCK" : "RESERVED";
+        if (serial.status !== allowedStatus && !(targetType === "RECEIPT" && serial.status === "IN_STOCK")) {
+          throw new Error(`Serial Number ${serial.serialNumber} is not available`);
+        }
+      }
+
+      await tx.documentItem.create({
+        data: {
+          documentId: document.id,
+          productId: item.productId,
+          serialNumberId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          discountAmount: item.discountAmount,
+          total: item.total
+        }
+      });
+
+      if (serialNumberId && targetType === "DELIVERY_NOTE") {
+        await tx.serialNumber.update({ where: { id: serialNumberId }, data: { status: "RESERVED" } });
+        await tx.stockMovement.create({
+          data: {
+            productId: item.productId,
+            serialNumberId,
+            documentId: document.id,
+            quantity: 0,
+            movementType: "RESERVE",
+            note: documentNo
+          }
+        });
+      }
+
+      if (targetType === "RECEIPT") {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { stockQuantity: { decrement: item.quantity } }
+        });
+        if (serialNumberId) {
+          await tx.serialNumber.update({ where: { id: serialNumberId }, data: { status: "SOLD" } });
+        }
+        await tx.stockMovement.create({
+          data: {
+            productId: item.productId,
+            serialNumberId,
+            documentId: document.id,
+            quantity: -item.quantity,
+            movementType: "SALE",
+            note: documentNo
+          }
+        });
+      }
+    }
+
+    await tx.auditLog.create({
+      data: {
+        userId: user.id,
+        action: "CONVERT",
+        entity: "Document",
+        entityId: document.id,
+        detail: `${source.documentNo} -> ${documentNo}`
+      }
+    });
+  });
+
+  revalidatePath("/admin/documents");
+  revalidatePath(`/admin/documents/${sourceDocumentId}`);
+  revalidatePath("/admin/inventory");
+}
+
+export async function cancelDocumentAction(formData: FormData) {
+  const user = await requireUser(["ADMIN", "OWNER", "ACCOUNTING"]);
+  const documentId = value(formData, "documentId");
+  await prisma.$transaction(async (tx) => {
+    const childCount = await tx.document.count({ where: { referenceDocumentId: documentId } });
+    if (childCount > 0) throw new Error("Cannot cancel a document that has child documents");
+    const document = await tx.document.update({
+      where: { id: documentId },
+      data: { status: "CANCELLED" }
+    });
+    await tx.auditLog.create({
+      data: {
+        userId: user.id,
+        action: "CANCEL",
+        entity: "Document",
+        entityId: document.id,
+        detail: document.documentNo
+      }
+    });
+  });
+  revalidatePath("/admin/documents");
+  revalidatePath(`/admin/documents/${documentId}`);
+}
+
 export async function createPosSaleAction(formData: FormData) {
   const user = await requireUser(["ADMIN", "OWNER", "CASHIER"]);
   const customerId = value(formData, "customerId") || null;

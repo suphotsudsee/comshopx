@@ -7,56 +7,87 @@ import { requireUser } from "@/lib/security";
 export default async function CustomersPage() {
   await requireUser(["ADMIN", "OWNER", "CASHIER", "ACCOUNTING"]);
   const [customers, documents] = await Promise.all([
-    prisma.customer.findMany({ include: { documents: true }, orderBy: { updatedAt: "desc" } }),
+    prisma.customer.findMany({
+      include: {
+        documents: {
+          include: {
+            items: { include: { product: true, serialNumber: true } }
+          }
+        }
+      },
+      orderBy: { updatedAt: "desc" }
+    }),
     prisma.document.findMany({ include: { customer: true }, orderBy: { createdAt: "desc" }, take: 20 })
   ]);
 
   return (
-    <AdminShell title="Customer CRM" subtitle="ข้อมูลลูกค้า ประวัติซื้อ เอกสาร และ Serial Number ที่เคยซื้อ">
+    <AdminShell title="Customer CRM" subtitle="Customer records, document history, and purchased Serial Numbers">
       <section className="adminPanel">
         <div className="panelHeader">
           <div>
             <p className="eyebrow">Customer Database</p>
-            <h2>ลูกค้า</h2>
+            <h2>Add customer</h2>
           </div>
-          <ToolButton label="เพิ่มลูกค้า" icon={<UserPlus size={16} />} />
+          <ToolButton label="New customer" icon={<UserPlus size={16} />} />
         </div>
         <form action={createCustomerAction} className="adminForm">
-          <label className="wide">ชื่อลูกค้า<input name="name" required /></label>
-          <label>เบอร์โทร<input name="phone" /></label>
+          <label className="wide">Customer name<input name="name" required /></label>
+          <label>Phone<input name="phone" /></label>
           <label>Email<input name="email" type="email" /></label>
           <label>Tax ID<input name="taxId" /></label>
-          <label className="full">ที่อยู่<textarea name="address" /></label>
-          <button className="primaryButton" type="submit">บันทึกลูกค้า</button>
+          <label className="full">Address<textarea name="address" /></label>
+          <button className="primaryButton" type="submit">Save customer</button>
         </form>
       </section>
 
       <section className="adminPanel">
         <div className="panelHeader">
           <div>
-            <p className="eyebrow">Customer Database</p>
-            <h2>รายชื่อลูกค้า</h2>
+            <p className="eyebrow">CRM</p>
+            <h2>Customers</h2>
           </div>
         </div>
         <div className="customerAdminGrid">
-          {customers.map((customer) => (
-            <article className="customerAdminCard" key={customer.name}>
-              <div>
-                <strong>{customer.name}</strong>
-                <StatusBadge value={customer.taxId ? "COMPANY" : "PERSON"} />
-              </div>
-              <span>{customer.phone} · {customer.email}</span>
-              <span>Tax ID: {customer.taxId || "-"}</span>
-              <small>{customer.address}</small>
-              <div className="miniList">
-                {customer.documents.length ? (
-                  customer.documents.slice(0, 3).map((document) => <b key={document.id}>{document.documentNo}</b>)
-                ) : (
-                  <b>No document history</b>
-                )}
-              </div>
-            </article>
-          ))}
+          {customers.map((customer) => {
+            const serials = customer.documents.flatMap((document) =>
+              document.items
+                .filter((item) => item.serialNumber)
+                .map((item) => ({
+                  id: item.id,
+                  documentNo: document.documentNo,
+                  serialNumber: item.serialNumber?.serialNumber,
+                  productName: item.product.name
+                }))
+            );
+
+            return (
+              <article className="customerAdminCard" key={customer.id}>
+                <div>
+                  <strong>{customer.name}</strong>
+                  <StatusBadge value={customer.taxId ? "COMPANY" : "PERSON"} />
+                </div>
+                <span>{customer.phone || "-"} · {customer.email || "-"}</span>
+                <span>Tax ID: {customer.taxId || "-"}</span>
+                <small>{customer.address || "-"}</small>
+                <div className="miniList">
+                  {customer.documents.length ? (
+                    customer.documents.slice(0, 3).map((document) => <b key={document.id}>{document.documentNo}</b>)
+                  ) : (
+                    <b>No document history</b>
+                  )}
+                </div>
+                <div className="miniList">
+                  {serials.length ? (
+                    serials.slice(0, 4).map((serial) => (
+                      <b key={serial.id}>{serial.serialNumber} · {serial.documentNo}</b>
+                    ))
+                  ) : (
+                    <b>No serial purchase history</b>
+                  )}
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
 
@@ -64,7 +95,7 @@ export default async function CustomersPage() {
         <div className="panelHeader">
           <div>
             <p className="eyebrow">Customer Documents</p>
-            <h2>ประวัติเอกสาร</h2>
+            <h2>Document history</h2>
           </div>
           <FileText size={20} />
         </div>

@@ -15,7 +15,12 @@ export default async function DocumentsPage() {
   await requireUser(["ADMIN", "OWNER", "CASHIER", "ACCOUNTING"]);
   const [documents, customers, products] = await Promise.all([
     prisma.document.findMany({
-      include: { customer: true, referenceDocument: true, items: { include: { product: true, serialNumber: true } } },
+      include: {
+        customer: true,
+        referenceDocument: true,
+        childDocuments: true,
+        items: { include: { product: true, serialNumber: true } }
+      },
       orderBy: { createdAt: "desc" }
     }),
     prisma.customer.findMany({ orderBy: { name: "asc" } }),
@@ -74,13 +79,18 @@ export default async function DocumentsPage() {
             <div className="adminRow document" key={document.documentNo}>
               <div>
                 <strong>{document.documentNo}</strong>
-                <span>{document.type} · Ref: {document.referenceDocument?.documentNo ?? "-"}</span>
+                <span>
+                  {document.type} · Ref: {document.referenceDocument?.documentNo ?? "-"} · Children: {document.childDocuments.length}
+                </span>
               </div>
               <span>{document.customer?.name ?? "Walk-in customer"}</span>
               <StatusBadge value={document.status} />
               <b>{money.format(Number(document.totalAmount))}</b>
               <Link className="iconButton" href={`/admin/documents/${document.id}`} aria-label="Print document">
                 <Printer size={16} />
+              </Link>
+              <Link className="secondaryButton" href={`/admin/documents/${document.id}`}>
+                Open
               </Link>
             </div>
           ))}
