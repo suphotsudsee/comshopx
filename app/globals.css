@@ -743,6 +743,49 @@ input {
   text-decoration: none;
 }
 
+.reportTable {
+  display: grid;
+  gap: 8px;
+}
+
+.reportRow {
+  display: grid;
+  grid-template-columns: 1.1fr 0.7fr repeat(3, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 14px;
+}
+
+.reportRow.head {
+  background: #f8fafc;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.reportRow span,
+.reportRow b {
+  text-align: right;
+}
+
+.reportRow strong,
+.reportRow.head span:first-child {
+  text-align: left;
+}
+
+.emptyState {
+  padding: 18px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  text-align: center;
+}
+
 .flowStep {
   min-height: 118px;
 }
