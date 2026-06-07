@@ -625,7 +625,7 @@ input {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
-  align-items: end;
+  align-items: flex-end;
 }
 
 .adminForm label {
@@ -784,6 +784,119 @@ input {
   border-radius: 8px;
   color: var(--muted);
   text-align: center;
+}
+
+.reportFilter {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.reportFilter label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.reportFilter input {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 10px;
+  font: inherit;
+}
+
+.circulationReport {
+  overflow: hidden;
+}
+
+.circulationSheet {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+}
+
+.circulationTop {
+  display: grid;
+  gap: 6px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.circulationTop strong {
+  font-size: 16px;
+}
+
+.circulationGrid {
+  display: grid;
+  grid-template-columns: 1.4fr repeat(4, 1fr);
+  border: 1px solid #94a3b8;
+}
+
+.circulationGrid div {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-right: 1px solid #94a3b8;
+  min-height: 78px;
+}
+
+.circulationGrid div:last-child {
+  border-right: 0;
+}
+
+.circulationGrid span {
+  color: #475569;
+  font-size: 13px;
+}
+
+.circulationGrid strong {
+  font-size: 18px;
+  text-align: right;
+}
+
+.circulationSummary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  align-items: stretch;
+}
+
+.circulationSummary span,
+.circulationSummary strong {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.circulationSummary b {
+  text-align: right;
+}
+
+.circulationSummary strong {
+  align-items: center;
+  justify-content: center;
+  background: #eef6f5;
+  color: var(--primary-dark);
+  font-size: 20px;
+}
+
+.circulationFooter {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: #475569;
 }
 
 .flowStep {
