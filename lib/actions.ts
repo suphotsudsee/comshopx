@@ -97,10 +97,15 @@ export async function createProductAction(formData: FormData) {
 export async function receiveSerialAction(formData: FormData) {
   const user = await requireUser(["ADMIN", "OWNER", "INVENTORY"]);
   const sku = value(formData, "sku");
-  const product = await prisma.product.findUniqueOrThrow({ where: { sku } });
   const serialNumber = value(formData, "serialNumber");
   const warrantyEnd = value(formData, "warrantyEndAt");
-  await prisma.$transaction(async (tx) => {
+  const product = await prisma.product.findUnique({ where: { sku } });
+  if (!product) redirect(`/admin/inventory?error=${encodeURIComponent(`SKU ${sku} not found`)}`);
+  const existingSerial = await prisma.serialNumber.findUnique({ where: { serialNumber } });
+  if (existingSerial) {
+    redirect(`/admin/inventory?error=${encodeURIComponent(`Serial Number ${serialNumber} already exists`)}`);
+  }
+  const receiveError = await prisma.$transaction(async (tx) => {
     const serial = await tx.serialNumber.create({
       data: {
         productId: product.id,
@@ -126,7 +131,9 @@ export async function receiveSerialAction(formData: FormData) {
     await tx.auditLog.create({
       data: { userId: user.id, action: "RECEIVE", entity: "SerialNumber", entityId: serial.id, detail: serialNumber }
     });
-  });
+    return "";
+  }).catch((error: Error) => error.message || "Unexpected receive error");
+  if (receiveError) redirect(`/admin/inventory?error=${encodeURIComponent(receiveError)}`);
   revalidatePath("/admin/inventory");
 }
 

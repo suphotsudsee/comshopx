@@ -10,15 +10,19 @@ const money = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0
 });
 
-export default async function InventoryPage() {
+export default async function InventoryPage({ searchParams }: { searchParams?: { error?: string } }) {
   await requireUser(["ADMIN", "OWNER", "INVENTORY"]);
   const [products, serialInventory] = await Promise.all([
     prisma.product.findMany({ include: { category: true }, orderBy: { updatedAt: "desc" } }),
     prisma.serialNumber.findMany({ include: { product: true }, orderBy: { updatedAt: "desc" } })
   ]);
+  const formError = searchParams?.error ? decodeURIComponent(searchParams.error) : "";
 
   return (
     <AdminShell title="Inventory & Serial Number" subtitle="จัดการสินค้า รับเข้า ติดตามประกัน และป้องกันขาย Serial ซ้ำ">
+      {formError ? (
+        <div className="alertBox danger">Inventory failed: {formError}</div>
+      ) : null}
       <section className="adminGrid two">
         <div className="adminPanel">
           <div className="panelHeader">
