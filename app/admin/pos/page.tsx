@@ -1,4 +1,5 @@
 import { Barcode, CreditCard, ReceiptText } from "lucide-react";
+import Link from "next/link";
 import { AdminShell, ScanInput, StatusBadge, ToolButton } from "../components";
 import { createPosSaleAction } from "@/lib/actions";
 import { paymentMethods } from "@/lib/admin-data";
@@ -133,7 +134,11 @@ export default async function PosPage({ searchParams }: { searchParams?: { error
             <ReceiptText size={20} />
           </div>
           <div className="documentFlow">
-            {recentReceipts.map((receipt) => <span key={receipt.id}>{receipt.documentNo}</span>)}
+            {recentReceipts.map((receipt) => (
+              <Link className="receiptLink" href={`/admin/documents/${receipt.id}`} key={receipt.id}>
+                {receipt.documentNo}
+              </Link>
+            ))}
             {!recentReceipts.length ? <span>ยังไม่มีใบเสร็จ</span> : null}
           </div>
         </div>

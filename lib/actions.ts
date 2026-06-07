@@ -317,7 +317,7 @@ export async function createPosSaleAction(formData: FormData) {
   const paymentMethod = (value(formData, "paymentMethod") || "CASH") as PaymentMethod;
   if (!productIds.length) redirect("/admin/pos?error=empty-cart");
 
-  const saleError = await prisma.$transaction(async (tx) => {
+  const saleResult = await prisma.$transaction(async (tx) => {
     const products = await tx.product.findMany({
       where: { id: { in: productIds } },
       include: { serialNumbers: true }
@@ -387,12 +387,16 @@ export async function createPosSaleAction(formData: FormData) {
     await tx.auditLog.create({
       data: { userId: user.id, action: "POS_SALE", entity: "Document", entityId: receipt.id, detail: receiptNo }
     });
-    return "";
-  }).catch((error: Error) => error.message || "Unexpected POS error");
-  if (saleError) redirect(`/admin/pos?error=${encodeURIComponent(saleError)}`);
+    return { documentId: receipt.id, error: "" };
+  }).catch((error: Error) => ({
+    documentId: "",
+    error: error.message || "Unexpected POS error"
+  }));
+  if (saleResult.error) redirect(`/admin/pos?error=${encodeURIComponent(saleResult.error)}`);
   revalidatePath("/admin/pos");
   revalidatePath("/admin/documents");
   revalidatePath("/admin/inventory");
+  redirect(`/admin/documents/${saleResult.documentId}`);
 }
 
 export async function createUserAction(formData: FormData) {
