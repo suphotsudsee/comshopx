@@ -317,7 +317,7 @@ export async function createPosSaleAction(formData: FormData) {
   const paymentMethod = (value(formData, "paymentMethod") || "CASH") as PaymentMethod;
   if (!productIds.length) redirect("/admin/pos?error=empty-cart");
 
-  await prisma.$transaction(async (tx) => {
+  const saleError = await prisma.$transaction(async (tx) => {
     const products = await tx.product.findMany({
       where: { id: { in: productIds } },
       include: { serialNumbers: true }
@@ -387,7 +387,9 @@ export async function createPosSaleAction(formData: FormData) {
     await tx.auditLog.create({
       data: { userId: user.id, action: "POS_SALE", entity: "Document", entityId: receipt.id, detail: receiptNo }
     });
-  });
+    return "";
+  }).catch((error: Error) => error.message || "Unexpected POS error");
+  if (saleError) redirect(`/admin/pos?error=${encodeURIComponent(saleError)}`);
   revalidatePath("/admin/pos");
   revalidatePath("/admin/documents");
   revalidatePath("/admin/inventory");

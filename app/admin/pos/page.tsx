@@ -11,8 +11,9 @@ const money = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0
 });
 
-export default async function PosPage() {
+export default async function PosPage({ searchParams }: { searchParams?: { error?: string } }) {
   await requireUser(["ADMIN", "OWNER", "CASHIER"]);
+  let loadError = "";
   const [products, customers, recentReceipts] = await Promise.all([
     prisma.product.findMany({
       include: { category: true, serialNumbers: { where: { status: "IN_STOCK" }, orderBy: { serialNumber: "asc" } } },
@@ -20,14 +21,24 @@ export default async function PosPage() {
     }),
     prisma.customer.findMany({ orderBy: { name: "asc" } }),
     prisma.document.findMany({ where: { type: "RECEIPT" }, orderBy: { createdAt: "desc" }, take: 3 })
-  ]);
+  ]).catch((error: Error) => {
+    loadError = error.message;
+    return [[], [], []] as const;
+  });
   const preview = products.slice(0, 3);
   const subtotal = preview.reduce((sum, item) => sum + Number(item.price), 0);
   const vat = Math.round(subtotal * 0.07);
   const total = subtotal + vat;
+  const formError = searchParams?.error ? decodeURIComponent(searchParams.error) : "";
 
   return (
     <AdminShell title="Point of Sale" subtitle="ขายหน้าร้าน สแกน Barcode/QR และเลือก Serial Number ตอนขาย">
+      {loadError ? (
+        <div className="alertBox danger">POS data load failed: {loadError}</div>
+      ) : null}
+      {formError ? (
+        <div className="alertBox danger">POS sale failed: {formError}</div>
+      ) : null}
       <section className="adminGrid pos">
         <div className="adminPanel">
           <div className="panelHeader">
@@ -43,7 +54,7 @@ export default async function PosPage() {
               <div className="adminRow" key={product.sku}>
                 <div>
                   <strong>{product.name}</strong>
-                  <span>{product.sku} · {product.category.name}</span>
+                  <span>{product.sku} · {product.category?.name ?? "No category"}</span>
                 </div>
                 <b>{money.format(Number(product.price))}</b>
               </div>

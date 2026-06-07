@@ -320,6 +320,23 @@ input {
   white-space: nowrap;
 }
 
+.alertBox {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fafc;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.alertBox.danger {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: var(--danger);
+}
+
 .issued,
 .reserved {
   color: var(--warn);
@@ -360,6 +377,10 @@ input {
   grid-template-columns: 250px minmax(0, 1fr);
   min-height: 100vh;
   background: #f4f6f8;
+}
+
+.adminShell.single {
+  grid-template-columns: 1fr;
 }
 
 .adminSidebar {
