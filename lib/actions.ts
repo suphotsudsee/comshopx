@@ -17,6 +17,20 @@ function moneyValue(formData: FormData, key: string) {
   return Number(value(formData, key) || 0);
 }
 
+function roundMoney(amount: number) {
+  return Math.round(amount * 100) / 100;
+}
+
+function splitVatFromInclusiveTotal(totalInclVat: number) {
+  const total = roundMoney(totalInclVat);
+  const vat = roundMoney((total * 7) / 107);
+  return {
+    subtotal: roundMoney(total - vat),
+    vat,
+    total
+  };
+}
+
 export async function loginAction(formData: FormData) {
   const email = value(formData, "email").toLowerCase();
   const password = value(formData, "password");
@@ -135,9 +149,9 @@ export async function createDocumentAction(formData: FormData) {
   const quantity = Number(value(formData, "quantity") || 1);
   const discount = moneyValue(formData, "discountAmount");
   const product = await prisma.product.findUniqueOrThrow({ where: { id: productId } });
-  const subtotal = Number(product.price) * quantity;
-  const vat = Math.round((subtotal - discount) * 0.07 * 100) / 100;
-  const total = subtotal - discount + vat;
+  const grossBeforeDiscount = Number(product.price) * quantity;
+  const totalAfterDiscount = Math.max(grossBeforeDiscount - discount, 0);
+  const { subtotal, vat, total } = splitVatFromInclusiveTotal(totalAfterDiscount);
   await prisma.$transaction(async (tx) => {
     const documentNo = await nextDocumentNo(tx as never, type);
     const document = await tx.document.create({
@@ -322,7 +336,7 @@ export async function createPosSaleAction(formData: FormData) {
       where: { id: { in: productIds } },
       include: { serialNumbers: true }
     });
-    let subtotal = 0;
+    let grossTotal = 0;
     const items = [];
     for (const productId of productIds) {
       const product = products.find((item) => item.id === productId);
@@ -336,11 +350,10 @@ export async function createPosSaleAction(formData: FormData) {
           throw new Error(`Serial Number ${serial.serialNumber} is not available`);
         }
       }
-      subtotal += Number(product.price);
+      grossTotal += Number(product.price);
       items.push({ product, serialId: serialId || null });
     }
-    const vat = Math.round(subtotal * 0.07 * 100) / 100;
-    const total = subtotal + vat;
+    const { subtotal, vat, total } = splitVatFromInclusiveTotal(grossTotal);
     const receiptNo = await nextDocumentNo(tx as never, "RECEIPT");
     const receipt = await tx.document.create({
       data: {

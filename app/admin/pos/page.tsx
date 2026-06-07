@@ -12,6 +12,16 @@ const money = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0
 });
 
+function splitVatFromInclusiveTotal(totalInclVat: number) {
+  const total = Math.round(totalInclVat * 100) / 100;
+  const vat = Math.round(((total * 7) / 107) * 100) / 100;
+  return {
+    subtotal: Math.round((total - vat) * 100) / 100,
+    vat,
+    total
+  };
+}
+
 export default async function PosPage({ searchParams }: { searchParams?: { error?: string } }) {
   await requireUser(["ADMIN", "OWNER", "CASHIER"]);
   let loadError = "";
@@ -27,9 +37,8 @@ export default async function PosPage({ searchParams }: { searchParams?: { error
     return [[], [], []] as const;
   });
   const preview = products.slice(0, 3);
-  const subtotal = preview.reduce((sum, item) => sum + Number(item.price), 0);
-  const vat = Math.round(subtotal * 0.07);
-  const total = subtotal + vat;
+  const previewTotal = preview.reduce((sum, item) => sum + Number(item.price), 0);
+  const { subtotal, vat, total } = splitVatFromInclusiveTotal(previewTotal);
   const formError = searchParams?.error ? decodeURIComponent(searchParams.error) : "";
 
   return (
